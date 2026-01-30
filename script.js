@@ -10,12 +10,10 @@ class PokerTimer {
         this.startTime = null;
         
         this.blindLevels = [
-            { small: 50, big: 100, duration: 15 * 60 },
-            { small: 100, big: 200, duration: 15 * 60 },
-            { small: 200, big: 400, duration: 20 * 60 },
-            { small: 300, big: 600, duration: 20 * 60 },
-            { small: 500, big: 1000, duration: 25 * 60 },
-            { small: 1000, big: 2000, duration: 30 * 60 }
+            { small: 100, big: 200, duration: 60 * 60 },
+            { small: 0, big: 0, duration: 10 * 60 },
+            { small: 200, big: 300, duration: 30 * 60 },
+            { small: 200, big: 400, duration: 30 * 60 }
         ];
         
         this.initElements();

@@ -30,18 +30,31 @@ class PokerTimer {
         this.btnStart = this.card.querySelector('.btn-start');
         this.btnPause = this.card.querySelector('.btn-pause');
         this.btnReset = this.card.querySelector('.btn-reset');
+        this.btnSkip = this.card.querySelector('.btn-skip');
+        this.btnEdit = this.card.querySelector('.btn-edit');
         this.btnSettings = this.card.querySelector('.btn-settings');
         this.btnSave = this.card.querySelector('.btn-save');
         this.settingsPanel = this.card.querySelector('.settings-panel');
         this.blindLevelsInput = this.card.querySelector('.blind-levels');
+        this.clockEditor = this.card.querySelector('.clock-editor');
+        this.clockHand = this.card.querySelector('.clock-hand');
+        this.clockSvg = this.card.querySelector('.clock-svg');
+        this.timeInfo = this.card.querySelector('.time-info');
+        this.btnApply = this.card.querySelector('.btn-apply');
+        this.btnCancel = this.card.querySelector('.btn-cancel');
     }
     
     bindEvents() {
         this.btnStart.addEventListener('click', () => this.start());
         this.btnPause.addEventListener('click', () => this.pause());
         this.btnReset.addEventListener('click', () => this.reset());
+        this.btnSkip.addEventListener('click', () => this.skipToNext());
+        this.btnEdit.addEventListener('click', () => this.openClockEditor());
         this.btnSettings.addEventListener('click', () => this.toggleSettings());
         this.btnSave.addEventListener('click', () => this.saveSettings());
+        this.btnApply.addEventListener('click', () => this.applyTimeEdit());
+        this.btnCancel.addEventListener('click', () => this.closeClockEditor());
+        this.setupClockEditor();
     }
     
     start() {
@@ -160,6 +173,103 @@ class PokerTimer {
         
         oscillator.start(audioContext.currentTime);
         oscillator.stop(audioContext.currentTime + 0.5);
+    }
+    
+    skipToNext() {
+        if (this.currentLevel < this.blindLevels.length - 1) {
+            this.currentLevel++;
+            this.timeRemaining = this.blindLevels[this.currentLevel].duration;
+            this.updateDisplay();
+            this.playSound();
+        }
+    }
+    
+    setupClockEditor() {
+        this.isDragging = false;
+        this.tempTimeRemaining = 0;
+        
+        this.clockSvg.addEventListener('mousedown', (e) => this.startDrag(e));
+        this.clockSvg.addEventListener('mousemove', (e) => this.drag(e));
+        this.clockSvg.addEventListener('mouseup', () => this.stopDrag());
+        this.clockSvg.addEventListener('mouseleave', () => this.stopDrag());
+        
+        this.clockSvg.addEventListener('touchstart', (e) => this.startDrag(e));
+        this.clockSvg.addEventListener('touchmove', (e) => this.drag(e));
+        this.clockSvg.addEventListener('touchend', () => this.stopDrag());
+    }
+    
+    openClockEditor() {
+        this.tempTimeRemaining = this.timeRemaining;
+        this.updateClockHand(this.timeRemaining);
+        this.clockEditor.style.display = 'flex';
+    }
+    
+    closeClockEditor() {
+        this.clockEditor.style.display = 'none';
+        this.isDragging = false;
+    }
+    
+    applyTimeEdit() {
+        this.timeRemaining = this.tempTimeRemaining;
+        this.updateDisplay();
+        this.closeClockEditor();
+    }
+    
+    startDrag(e) {
+        this.isDragging = true;
+        this.drag(e);
+    }
+    
+    stopDrag() {
+        this.isDragging = false;
+    }
+    
+    drag(e) {
+        if (!this.isDragging) return;
+        
+        e.preventDefault();
+        const rect = this.clockSvg.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        
+        let clientX, clientY;
+        if (e.type.startsWith('touch')) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        
+        const deltaX = clientX - centerX;
+        const deltaY = clientY - centerY;
+        let angle = Math.atan2(deltaX, -deltaY) * (180 / Math.PI);
+        if (angle < 0) angle += 360;
+        
+        const maxDuration = this.blindLevels[this.currentLevel].duration;
+        const percentage = angle / 360;
+        this.tempTimeRemaining = Math.round(maxDuration * percentage);
+        
+        this.updateClockHand(this.tempTimeRemaining);
+    }
+    
+    updateClockHand(timeRemaining) {
+        const maxDuration = this.blindLevels[this.currentLevel].duration;
+        const percentage = timeRemaining / maxDuration;
+        const angle = percentage * 360;
+        
+        const radians = (angle - 90) * (Math.PI / 180);
+        const handLength = 70;
+        const x2 = 100 + handLength * Math.cos(radians);
+        const y2 = 100 + handLength * Math.sin(radians);
+        
+        this.clockHand.setAttribute('x2', x2);
+        this.clockHand.setAttribute('y2', y2);
+        
+        const minutes = Math.floor(timeRemaining / 60);
+        const seconds = timeRemaining % 60;
+        this.timeInfo.textContent = 
+            `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     }
 }
 
